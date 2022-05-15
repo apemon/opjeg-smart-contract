@@ -1,15 +1,25 @@
-# Basic Sample Hardhat Project
+# OPJEG contract
+     Flow 1: mint put (exercised)
+     1. mintPut(): writer deposit ETH, set strikePrice < marketPrice
+       - Option writer gets OptionNFT
+       - Option writer sells OptionNFT in marketplace
+     2. exercisePut() by option holder
+       - Option holder sends NFT to contract
+       - ETH released to option holder
+       - OptionNFT burned by contract
+     3. claimNFT() by option writer
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+     Flow 2: mint call (exercised)
+     1. mintCall(): writer deposit NFT, set strikePrice > marketPrice
+       - Option writer gets OptionNFT
+     2. exerciseCall() by option holder
+       - Option holder sends _strikePrice ETH to contract
+       - NFT released to option holder
+       - OptionNFT burned by contract
+     3. claimETH() by option writer
 
-Try running some of the following tasks:
+     Flow 3: option not exercised
+     1. burnOption(): called by anyone, returns ETH or NFT to option writer
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
-```
+     Flow 4: dev claim protocol fee
+     1. claim()
