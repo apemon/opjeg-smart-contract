@@ -1,4 +1,5 @@
 # OPJEG contract
+
      Flow 1: mint put (exercised)
      1. mintPut(): writer deposit ETH, set strikePrice < marketPrice
        - Option writer gets OptionNFT
