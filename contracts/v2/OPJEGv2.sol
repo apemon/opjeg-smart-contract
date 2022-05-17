@@ -16,7 +16,7 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
     uint256 mintFee = 0.0 ether;
     uint256 backendBip = 50;
     uint256 LiquidatorBip = 50; // bonus to liquidator if greater than min
-    uint256 LiquidatorMin = 0.05 ether; // min bonus for liquidator
+    uint256 minDebtSize = 0.5 ether; // to garantee bounty
 
     uint256 totalFee;
     uint256 lastidx;
@@ -250,14 +250,13 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
         require(ownerOf(optionID) == msg.sender, "not your option");
 
         Option memory opt = optionData[optionID];
+        require(opt.strikePrice > minDebtSize);
 
         require(!debtData[optionID].exist, "have outstanding debt");
         require(opt.allowLend);
         require(!opt.isPut);
         require(opt.deadline > block.timestamp + liquidationDeadlineBuffer);
-        uint256 buffer = (opt.strikePrice * LiquidatorBip) /
-            10_000 +
-            LiquidatorMin;
+        uint256 buffer = (opt.strikePrice * LiquidatorBip) / 10_000;
         require(msg.value >= buffer + opt.strikePrice);
 
         receipt.burn(opt.tokenID);
@@ -282,6 +281,7 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
         uint256 amount
     ) public payable {
         require(ownerOf(optionID) == msg.sender, "not your option");
+        require(amount > minDebtSize);
 
         Option memory opt = optionData[optionID];
 
@@ -384,8 +384,76 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
         payable(msg.sender).transfer(toPay);
     }
 
-    function liquidate(uint256 optionID) public {
-        // TODO
+    /// @notice liquidate ETH dept by seize NFT
+    function liquidateETHDept(uint256 optionID) public {
+        Debt storage debt = debtData[optionID];
+        require(debt.exist);
+        Option storage opt = optionData[optionID];
+        require(opt.isPut);
+        uint256 interest = debtInterest(
+            debt.amount,
+            opt.rate,
+            block.timestamp - debt.lastTs
+        );
+
+        bool valid = false;
+        if (block.timestamp + liquidationDeadlineBuffer > opt.deadline) {
+            valid = true;
+        } else if (
+            debt.amount + interest >
+            (opt.strikePrice * collateralFactor) / 10_000
+        ) {
+            valid = true;
+        }
+
+        if (!valid) {
+            return;
+        }
+
+        address borrower = ownerOf(optionID);
+        _burn(optionID);
+
+        nftBal[opt.issuer].push(debt.collateral);
+
+        ethBal[opt.issuer] += (interest * (10_000 - backendBip)) / 10_000;
+        uint256 bounty = (opt.strikePrice * LiquidatorBip) / 10_000;
+        uint256 fee = ((opt.strikePrice + interest) * backendBip) / 10_000;
+        totalFee += fee;
+        ethBal[borrower] += opt.strikePrice - interest - bounty - fee;
+
+        payable(msg.sender).transfer(bounty);
+    }
+
+    /// @notice liquidate NFT dept by seize ETH
+    function liquidateNFTDept(uint256 optionID) public {
+        Debt storage debt = debtData[optionID];
+        require(debt.exist);
+        Option storage opt = optionData[optionID];
+        require(!opt.isPut);
+        uint256 interest = debtInterest(
+            opt.strikePrice,
+            opt.rate,
+            block.timestamp - debt.lastTs
+        );
+
+        bool valid = false;
+        if (block.timestamp + liquidationDeadlineBuffer > opt.deadline) {
+            valid = true;
+        } else if (opt.strikePrice + interest > debt.collateral) {
+            valid = true;
+        }
+
+        if (!valid) {
+            return;
+        }
+
+        _burn(optionID);
+
+        uint256 bounty = (opt.strikePrice * LiquidatorBip) / 10_000;
+        uint256 fee = ((opt.strikePrice + interest) * backendBip) / 10_000;
+        ethBal[opt.issuer] += debt.collateral - bounty - fee;
+
+        payable(msg.sender).transfer(bounty);
     }
 
     function _beforeTokenTransfer(
