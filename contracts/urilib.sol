@@ -1,4 +1,4 @@
-pragma solidity >=0.7.6;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -65,10 +65,10 @@ library URILib {
                 img,
                 '<text x="10" y="80" class="put">token ID - any</text>',
                 '<text x="10" y="120" class="put">at ',
-                weiToEth(priceWei),
-                " ETH</text>",
+                string(weiToEth(priceWei)),
+                " </text>",
                 '<text x="10" y="160" class="put">expired in ',
-                timeRemain(deadline),
+                string(timeRemain(deadline)),
                 "</text>",
                 '<text x="10" y="200" class="put">check out TW @opjegfinance</text>',
                 "</svg>"
@@ -81,7 +81,7 @@ library URILib {
                     abi.encodePacked(
                         '{"name": "OPJEG - PUT - ',
                         name,
-                        '", "description": "OPtion to optimize your JPEG"", "image": "data:image/svg+xml;base64,',
+                        '", "description": "OPtion to optimize your JPEG", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(img)),
                         '","attributes": [{"trait_type": "Type", "value": "PUT"}]}'
                     )
@@ -113,6 +113,7 @@ library URILib {
                 "</text>"
             )
         );
+
         img = string(
             abi.encodePacked(
                 img,
@@ -120,10 +121,10 @@ library URILib {
                 tokenID.toString(),
                 "</text>",
                 '<text x="10" y="120" class="call">at ',
-                weiToEth(priceWei),
-                " ETH</text>",
+                string(weiToEth(priceWei)),
+                " </text>",
                 '<text x="10" y="160" class="call">expired in ',
-                timeRemain(deadline),
+                string(timeRemain(deadline)),
                 "</text>",
                 '<text x="10" y="200" class="call">check out TW @opjegfinance</text>',
                 "</svg>"
@@ -136,7 +137,7 @@ library URILib {
                     abi.encodePacked(
                         '{"name": "OPJEG - CALL - ',
                         name,
-                        '", "description": "OPtion to optimize your JPEG"", "image": "data:image/svg+xml;base64,',
+                        '", "description": "OPtion to optimize your JPEG", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(img)),
                         '","attributes": [{"trait_type": "Type", "value": "CALL"}]}'
                     )
@@ -153,13 +154,27 @@ library URILib {
     function weiToEth(uint256 price) internal view returns (string memory) {
         uint256 eth = price / 1 ether;
         uint256 deci = ((price % 1 ether) * 1000) / 1 ether;
-        return string(abi.encodePacked(eth, ".", deci, " ETH"));
+        return
+            string(
+                abi.encodePacked(eth.toString(), ".", deci.toString(), " ETH")
+            );
     }
 
     function timeRemain(uint256 time) internal view returns (string memory) {
+        if (block.timestamp > time) {
+            return " Expired";
+        }
         uint256 remain = time - block.timestamp;
         uint256 day = remain / 1 days;
         uint256 hour = (remain % 1 days) / 1 hours;
-        return string(abi.encodePacked(day, " days", hour, " hours"));
+        return
+            string(
+                abi.encodePacked(
+                    day.toString(),
+                    " days ",
+                    hour.toString(),
+                    " hours"
+                )
+            );
     }
 }
