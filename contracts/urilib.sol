@@ -65,10 +65,10 @@ library URILib {
                 img,
                 '<text x="10" y="80" class="put">token ID - any</text>',
                 '<text x="10" y="120" class="put">at ',
-                string(weiToEth(priceWei)),
+                weiToEth(priceWei),
                 " </text>",
                 '<text x="10" y="160" class="put">expired in ',
-                string(timeRemain(deadline)),
+                timeRemain(deadline),
                 "</text>",
                 '<text x="10" y="200" class="put">check out TW @opjegfinance</text>',
                 "</svg>"
@@ -83,7 +83,11 @@ library URILib {
                         name,
                         '", "description": "OPtion to optimize your JPEG", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(img)),
-                        '","attributes": [{"trait_type": "Type", "value": "PUT"}]}'
+                        '","attributes": [{"trait_type": "Type", "value": "PUT"},{"trait_type": "Strike", "value": "',
+                        weiToEth(priceWei),
+                        '"},{"trait_type": "Expiry", "value": "',
+                        deadline.toString(),
+                        '"}]}'
                     )
                 )
             )
@@ -121,10 +125,10 @@ library URILib {
                 tokenID.toString(),
                 "</text>",
                 '<text x="10" y="120" class="call">at ',
-                string(weiToEth(priceWei)),
+                weiToEth(priceWei),
                 " </text>",
                 '<text x="10" y="160" class="call">expired in ',
-                string(timeRemain(deadline)),
+                timeRemain(deadline),
                 "</text>",
                 '<text x="10" y="200" class="call">check out TW @opjegfinance</text>',
                 "</svg>"
@@ -139,7 +143,11 @@ library URILib {
                         name,
                         '", "description": "OPtion to optimize your JPEG", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(img)),
-                        '","attributes": [{"trait_type": "Type", "value": "CALL"}]}'
+                        '","attributes": [{"trait_type": "Type", "value": "CALL"},{"trait_type": "Strike", "value": "',
+                        weiToEth(priceWei),
+                        '"},{"trait_type": "Expiry", "value": "',
+                        deadline.toString(),
+                        '"}]}'
                     )
                 )
             )
