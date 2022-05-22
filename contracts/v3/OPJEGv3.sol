@@ -52,11 +52,11 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
     }
 
     /// @dev main data
-    mapping(uint256 => Option) optionData;
-    mapping(uint256 => Debt) debtData;
+    mapping(uint256 => Option) public optionData;
+    mapping(uint256 => Debt) public debtData;
 
-    mapping(address => uint256) ethBal;
-    mapping(address => uint256[]) nftBal;
+    mapping(address => uint256) public ethBal;
+    mapping(address => uint256[]) public nftBal;
 
     constructor(string memory _nftName, address _nftAddress)
         ERC721(
@@ -75,6 +75,27 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
 
     function deposit() public payable {
         ethBal[msg.sender] += msg.value;
+    }
+
+    function listBag(address wallet)
+        public
+        view
+        returns (uint256[] memory out)
+    {
+        uint256 count = 0;
+        for (uint256 i = 1; i <= lastidx; i++) {
+            if (optionData[i].issuer == wallet && _exists(i)) {
+                count += 1;
+            }
+        }
+
+        out = new uint256[](count);
+        for (uint256 i = 1; i <= lastidx; i++) {
+            if (optionData[i].issuer == wallet && _exists(i)) {
+                out[count - 1] = i;
+                count -= 1;
+            }
+        }
     }
 
     function _hashPut(
