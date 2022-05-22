@@ -5,9 +5,7 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
-
-/// @notice just a non transferable NFT to use as receipt. 
+/// @notice just a non transferable NFT to use as receipt.
 contract OPJEGReceipt is ERC721, Ownable {
     using Strings for uint256;
     event notTransfer(address from, address to, uint256 tokenId);
@@ -21,7 +19,7 @@ contract OPJEGReceipt is ERC721, Ownable {
         address to,
         uint256 tokenId
     ) internal override {
-        emit notTransfer(from, to, tokenId); 
+        emit notTransfer(from, to, tokenId);
         revert("OPJEGReceipt: non tranferable");
     }
 
