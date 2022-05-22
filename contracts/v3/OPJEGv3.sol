@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "./OPJEGReceipt.sol";
 
@@ -27,7 +28,7 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
 
     uint256 liquidationDeadlineBuffer = 1 days;
 
-    mapping (address => mapping(uint => bool)) nonceUsed;
+    mapping(address => mapping(uint256 => bool)) nonceUsed;
 
     OPJEGReceipt receipt;
 
@@ -61,7 +62,7 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
             string(abi.encodePacked("OPJEG-", _nftName)),
             string(abi.encodePacked("OPJEG-", _nftName))
         )
-        EIP712(abi.encodePacked("OPJEG-", _nftName), "1.0.0")
+        EIP712(string(abi.encodePacked("OPJEG-", _nftName)), "1.0.0")
     {
         nftAddress = _nftAddress;
         nftName = _nftName;
@@ -81,13 +82,15 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
         bool _allowLend,
         uint16 _rate,
         uint256 premium,
-        uint nonce
+        uint256 nonce
     ) internal view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
-                        keccak256("PUT(uint256 _strikePrice,uint256 _deadline,bool _allowLend,uint16 _rate,uint256 premium,uint256 nonce)"),
+                        keccak256(
+                            "PUT(uint256 _strikePrice,uint256 _deadline,bool _allowLend,uint16 _rate,uint256 premium,uint256 nonce)"
+                        ),
                         _strikePrice,
                         _deadline,
                         _allowLend,
@@ -103,55 +106,61 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
         uint256 _strikePrice,
         uint256 _deadline,
         bool _allowLend,
-        uint16 _rate
+        uint16 _rate,
         uint256 premium,
-        uint nonce
+        uint256 nonce
     ) internal view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
-                        keccak256("CALL(uint256 _tokenID,uint256 _strikePrice,uint256 _deadline,bool _allowLend,uint16 _rate,uint256 premium,uint256 nonce)"),
+                        keccak256(
+                            "CALL(uint256 _tokenID,uint256 _strikePrice,uint256 _deadline,bool _allowLend,uint16 _rate,uint256 premium,uint256 nonce)"
+                        ),
                         _tokenID,
                         _strikePrice,
                         _deadline,
                         _allowLend,
-                        _rate
+                        _rate,
                         premium
                     )
                 )
             );
     }
 
-    function cancle(uint nonce) public {
+    function cancle(uint256 nonce) public {
         nonceUsed[msg.sender][nonce] = true;
     }
 
-
-    function buyPut(        
+    function buyPut(
         uint256 _strikePrice,
         uint256 _deadline,
         bool _allowLend,
         uint16 _rate,
         uint256 premium,
-        uint256 nonce
-        bytes32 signature) public payable{
+        uint256 nonce,
+        bytes32 signature
+    ) public payable {
+        address seller = ECDSA.recover(
+            _hashPut(
+                _strikePrice,
+                _deadline,
+                _allowLend,
+                _rate,
+                premium,
+                nonce
+            ),
+            signature
+        );
 
-        address seller  = ECDSA.recover(_hashPut( _strikePrice,
-        _deadline,
-        _allowLend,
-        _rate,
-        premium,nonce), signature);
-
-        require(!nonceUsed[seller][nonce])
+        require(!nonceUsed[seller][nonce]);
         nonceUsed[seller][nonce] = true;
-    
 
-        require(msg.value >= premium)
+        require(msg.value >= premium);
 
         ethBal[seller] -= _strikePrice;
-        ethBal[seller] += premium * (10_000 - backendBip) / 10_000;
-        totalFee += premium * backendBip / 10_000;
+        ethBal[seller] += (premium * (10_000 - backendBip)) / 10_000;
+        totalFee += (premium * backendBip) / 10_000;
 
         optionData[lastidx + 1] = Option({
             tokenID: 0, // tokenID is irrelavant for put
@@ -164,38 +173,39 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
         });
         _mint(msg.sender, lastidx + 1);
         lastidx += 1;
-        }
+    }
 
     function buyCall(
         uint256 _tokenID,
         uint256 _strikePrice,
         uint256 _deadline,
         bool _allowLend,
-        uint16 _rate
+        uint16 _rate,
         uint256 premium,
-        uint256 nonce
+        uint256 nonce,
         bytes32 signature
-    ) public payable{
-        address seller = ECDSA.recover(_hashCall( _tokenID,
-         _strikePrice,
-         _deadline,
-         _allowLend,
-         _rate
-         premium,
-         nonce), signature);
-
-        require(!nonceUsed[seller][nonce])
-        nonceUsed[seller][nonce] = true;
-    
-        require(msg.value >= premium)
-        ethBal[seller] += premium * (10_000 - backendBip) / 10_000;
-        totalFee += premium * backendBip / 10_000;
-        
-        ERC721(nftAddress).safeTransferFrom(
-            seller,
-            address(this),
-            _tokenID
+    ) public payable {
+        address seller = ECDSA.recover(
+            _hashCall(
+                _tokenID,
+                _strikePrice,
+                _deadline,
+                _allowLend,
+                _rate,
+                premium,
+                nonce
+            ),
+            signature
         );
+
+        require(!nonceUsed[seller][nonce]);
+        nonceUsed[seller][nonce] = true;
+
+        require(msg.value >= premium);
+        ethBal[seller] += (premium * (10_000 - backendBip)) / 10_000;
+        totalFee += (premium * backendBip) / 10_000;
+
+        ERC721(nftAddress).safeTransferFrom(seller, address(this), _tokenID);
 
         optionData[lastidx + 1] = Option({
             tokenID: _tokenID,
@@ -211,9 +221,7 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
 
         receipt.mintTo(seller, _tokenID);
         lastidx += 1;
-
     }
-
 
     /// @dev exercise to sell NFT
     function mintPut(uint256 _strikePrice, uint256 _deadline) public payable {
