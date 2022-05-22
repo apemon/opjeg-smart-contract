@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./OPJEGReceipt.sol";
+import "../urilib.sol";
 
 contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
     using Strings for uint256;
@@ -235,7 +236,15 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
         returns (string memory)
     {
         require(_exists(tokenId));
-        return string(abi.encodePacked("yolo - ", tokenId.toString())); // let's do SVG on this later
+        Option memory token = optionData[tokenId];
+        return
+            URILib.renderURI(
+                token.isPut,
+                nftName,
+                token.tokenID,
+                token.strikePrice,
+                token.deadline
+            );
     }
 
     /// @dev ez mooney
@@ -463,5 +472,9 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
     ) internal override {
         require(!debtData[tokenId].exist, "have outstanding debt");
         super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    function contractURI() external view returns (string memory) {
+        return URILib.renderContractURI(nftName);
     }
 }

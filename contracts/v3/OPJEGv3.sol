@@ -139,7 +139,7 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
         uint16 _rate,
         uint256 premium,
         uint256 nonce,
-        bytes32 signature
+        bytes memory signature
     ) public payable {
         address seller = ECDSA.recover(
             _hashPut(
@@ -183,7 +183,7 @@ contract OPJEGv3 is ERC721Enumerable, ERC721Holder, Ownable, EIP712 {
         uint16 _rate,
         uint256 premium,
         uint256 nonce,
-        bytes32 signature
+        bytes memory signature
     ) public payable {
         address seller = ECDSA.recover(
             _hashCall(
