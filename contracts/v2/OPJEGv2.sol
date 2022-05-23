@@ -33,7 +33,7 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
         uint256 tokenID;
         uint256 strikePrice;
         address issuer;
-        uint32 deadline;
+        uint256 deadline;
         bool isPut;
         bool allowLend;
         uint16 rate;
@@ -105,7 +105,7 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
 
         optionData[lastidx + 1] = Option({
             tokenID: 0, // tokenID is irrelavant for put
-            deadline: uint32(_deadline),
+            deadline: _deadline,
             strikePrice: _strikePrice,
             issuer: msg.sender,
             isPut: true,
@@ -144,7 +144,7 @@ contract OPJEGv2 is ERC721Enumerable, ERC721Holder, Ownable {
 
         optionData[lastidx + 1] = Option({
             tokenID: _tokenID,
-            deadline: uint32(_deadline),
+            deadline: _deadline,
             strikePrice: _strikePrice,
             issuer: msg.sender,
             isPut: false,
